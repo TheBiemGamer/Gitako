@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - '**'
+      - '!forgejo' # fork branch, built by forgejo.yml
     paths-ignore:
       - 'server/**'
   pull_request:

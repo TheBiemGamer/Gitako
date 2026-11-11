@@ -5,6 +5,7 @@ on:
     tags:
       - v[0-9]+.* # roughly matching version numbers
       - release-*
+      - '!v*-forgejo*' # fork releases, built by forgejo.yml
 
 jobs:
   build:

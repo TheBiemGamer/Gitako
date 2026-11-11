@@ -1,0 +1,89 @@
+name: Forgejo build
+
+# Fork CI: build, test and package the Forgejo-focused extension.
+# Branch pushes upload the zip and crx as workflow artifacts; v* tags publish
+# them as a GitHub Release. The crx is signed with the CRX_PRIVATE_KEY secret
+# (PEM contents), which keeps the extension ID stable.
+on:
+  push:
+    branches: [forgejo]
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install dependencies
+        # plain install fails on fsevents; scripts are skipped, patches applied after
+        run: |
+          npx -y yarn@1.22.22 install --frozen-lockfile --ignore-engines --ignore-platform --ignore-scripts
+          npx patch-package
+
+      - name: Fetch vscode-icons
+        run: make pull-icons
+
+      - name: Type-check
+        # node_modules has upstream type errors; only src/ must be clean
+        run: |
+          if node_modules/.bin/tsc --noEmit -p . | grep '^src/'; then
+            echo "::error::type errors in src/"
+            exit 1
+          fi
+
+      - name: Unit tests
+        run: npx -y yarn@1.22.22 test:unit
+
+      - name: Build
+        run: npx -y yarn@1.22.22 build
+
+      - name: Install Chromium for packing
+        run: npx playwright install --with-deps chromium
+
+      - name: Signing key
+        env:
+          CRX_PRIVATE_KEY: ${{ secrets.CRX_PRIVATE_KEY }}
+        run: |
+          key="$RUNNER_TEMP/key.pem"
+          if [ -n "$CRX_PRIVATE_KEY" ]; then
+            (umask 077 && printf '%s\n' "$CRX_PRIVATE_KEY" > "$key")
+          elif [ "$GITHUB_REF_TYPE" = tag ]; then
+            echo "::error::CRX_PRIVATE_KEY secret is not set; a release needs the stable signing key"
+            exit 1
+          else
+            echo "::warning::CRX_PRIVATE_KEY is not set; this crx is signed with a throwaway key (different extension ID)"
+          fi
+          echo "CRX_KEY=$key" >> "$GITHUB_ENV"
+
+      - name: Pack zip and crx
+        run: |
+          mkdir -p out
+          scripts/pack-crx.sh "$CRX_KEY" out | tee out/pack.txt
+          rm -f "$CRX_KEY"
+
+      - name: Upload artifacts
+        if: github.ref_type == 'branch'
+        uses: actions/upload-artifact@v7
+        with:
+          name: gitako-forgejo-${{ github.sha }}
+          path: |
+            out/gitako-forgejo.zip
+            out/gitako-forgejo.crx
+
+      - name: Publish release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          id=$(sed -n 's/^extension ID: //p' out/pack.txt)
+          notes="Gitako for Forgejo, built from ${GITHUB_SHA::7}.
+
+          - \`gitako-forgejo.crx\`: signed extension, ID \`$id\`
+          - \`gitako-forgejo.zip\`: same files, for Load unpacked"
+          gh release create "$GITHUB_REF_NAME" out/gitako-forgejo.crx out/gitako-forgejo.zip \
+            --title "$GITHUB_REF_NAME" --notes "$notes" --verify-tag
