@@ -1,5 +1,5 @@
 import { useConfigs } from 'containers/ConfigsContext'
-import { platform } from 'platforms'
+import { platform, platformName } from 'platforms'
 import { useCallback, useEffect, useRef } from 'react'
 import { useEvent, useInterval } from 'react-use'
 import { run } from 'utils/general'
@@ -28,7 +28,8 @@ export function usePJAXAPI() {
   const { pjaxMode } = useConfigs().value
   // make history travel work
   useEffect(() => {
-    if (pjaxMode === 'pjax-api') {
+    // Gitea navigates with full loads; ignore a pjax-api value saved by older builds
+    if (pjaxMode === 'pjax-api' && platformName !== 'Gitea') {
       run(async () => {
         const { Pjax } = await import('pjax-api')
         new Pjax({

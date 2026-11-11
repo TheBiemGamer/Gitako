@@ -173,4 +173,12 @@ export const Gitea: Platform = {
   usePlatformHooks() {
     useProgressBar()
   },
+  // Always do a full page load. Forgejo mounts widgets such as the branch
+  // dropdown (a Vue app fed from window.config.pageData) once at page init, so
+  // a pjax swap of the content area leaves them dead. Persistent sidebar mode
+  // plus expand-to-current-file keep the tree in place across the reload.
+  loadWithFastRedirect(url) {
+    window.location.assign(url)
+    return true
+  },
 }

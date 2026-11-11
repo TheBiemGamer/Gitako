@@ -84,7 +84,9 @@ export const getDefaultConfigs: () => Config = () => ({
   codeFolding: !isInGitHub, // disable on github.com; native gutter folding covers it, preserved for GHE
   compactFileTree: false,
   restoreExpandedFolders: true,
-  pjaxMode: platformName === 'GitHub' ? 'native' : 'pjax-api', // use native on GitHub
+  // pjax-api only on Gitee; GitHub has its own soft navigation, Gitea/Forgejo
+  // need full loads (see platforms/Gitea loadWithFastRedirect)
+  pjaxMode: platformName === 'Gitee' ? 'pjax-api' : 'native',
   showDiffInText: false,
   sidebarPlacement: 'left',
   neverShowSidebarAutoCollapseHint: false,
