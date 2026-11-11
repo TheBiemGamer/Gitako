@@ -107,6 +107,10 @@ function createConfig({ envTarget }: { envTarget: Target }) {
           from: './src/firefox-shim.js',
           to: 'firefox-shim.js',
         },
+        {
+          from: './src/options.html',
+          to: 'options.html',
+        },
       ],
     }),
     new ForkTsCheckerWebpackPlugin(),
@@ -130,6 +134,7 @@ function createConfig({ envTarget }: { envTarget: Target }) {
     entry: {
       content: './src/content.tsx',
       early: './src/early.ts',
+      options: './src/options.ts',
       background: './src/background.ts',
     },
     devtool: IN_PRODUCTION_MODE ? 'source-map' : 'inline-source-map',
