@@ -40,6 +40,7 @@ import {
 } from './hooks/useNodeRenderers'
 import { useHandleNodeClick } from './hooks/useOnNodeClick'
 import { useOnSearch } from './hooks/useOnSearch'
+import { usePersistExpandedFolders } from './hooks/usePersistExpandedFolders'
 import { useRenderLabelText } from './hooks/useRenderLabelText'
 import { useVisibleNodesGenerator } from './hooks/useVisibleNodesGenerator'
 import { useVisibleNodesGeneratorMethods } from './hooks/useVisibleNodesGeneratorMethods'
@@ -169,6 +170,9 @@ function LoadedFileExplorer({
     updateSearchKey,
   )
   const { expandTo, goTo, focusNode } = methods
+  // after the methods hook: its mount effect resets expansion via goTo, so the
+  // restore has to run later
+  usePersistExpandedFolders(visibleNodesGenerator, metaData)
   const handleNodeFocus = useHandleNodeFocus(methods, setAlignMode)
   const handleNodeClick = useHandleNodeClick(methods, setAlignMode)
   const handleKeyDown = useHandleKeyDown(visibleNodes, methods, searched, setAlignMode)
