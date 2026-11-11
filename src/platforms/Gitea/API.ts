@@ -81,11 +81,29 @@ export async function getTreeData(
   recursive?: boolean,
   accessToken?: string,
 ): Promise<GiteaAPI.TreeData> {
-  const search = new URLSearchParams()
-  if (recursive) search.set('recursive', '1')
-  const url = `${API_ENDPOINT}/repos/${userName}/${repoName}/git/trees/${branchName}?${search}`
-  return await request(url, { accessToken })
+  const getPage = (page: number): Promise<GiteaAPI.TreeData> => {
+    const search = new URLSearchParams()
+    if (recursive) search.set('recursive', '1')
+    if (page > 1) search.set('page', String(page))
+    const url = `${API_ENDPOINT}/repos/${userName}/${repoName}/git/trees/${branchName}?${search}`
+    return request(url, { accessToken })
+  }
+
+  // Recursive listings are paginated (1000 entries per page by default) and
+  // `truncated` stays true on every page, so page by `total_count`.
+  const first = await getPage(1)
+  const pageSize = first.tree.length
+  const total = first.total_count || 0
+  if (!recursive || !pageSize || total <= pageSize) return first
+
+  const pageCount = Math.min(Math.ceil(total / pageSize), MAX_TREE_PAGES)
+  const rest = await Promise.all(Array.from({ length: pageCount - 1 }, (_, i) => getPage(i + 2)))
+  const tree = first.tree.concat(...rest.map(page => page.tree))
+  return { ...first, tree, truncated: tree.length < total }
 }
+
+// 50k entries; beyond that the sidebar is not useful anyway
+const MAX_TREE_PAGES = 50
 
 export async function getBlobData(
   userName: string,

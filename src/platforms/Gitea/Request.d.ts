@@ -13,6 +13,9 @@ declare namespace GiteaAPI {
     truncated: boolean
     tree: TreeItem[]
     url: string
+    // paginated responses (recursive listing) carry these
+    page?: number
+    total_count?: number
   }
 
   type MetaData = {
