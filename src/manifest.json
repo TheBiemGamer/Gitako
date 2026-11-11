@@ -7,7 +7,12 @@
     "256": "icons/Gitako-256.png"
   },
   "permissions": ["scripting", "storage", "contextMenus", "activeTab"],
-  "host_permissions": ["*://*.github.com/*", "*://gitako.enix.one/*", "*://*.sentry.io/*"],
+  "host_permissions": [
+    "*://*.github.com/*",
+    "https://git.biem.cloud/*",
+    "*://gitako.enix.one/*",
+    "*://*.sentry.io/*"
+  ],
   "optional_host_permissions": ["*://*/*"],
   "web_accessible_resources": [
     {
@@ -27,13 +32,13 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://github.com/*"],
+      "matches": ["https://github.com/*", "https://git.biem.cloud/*"],
       "js": ["early.js"],
       "css": ["content.css"],
       "run_at": "document_start"
     },
     {
-      "matches": ["https://github.com/*"],
+      "matches": ["https://github.com/*", "https://git.biem.cloud/*"],
       "js": ["firefox-shim.js", "browser-polyfill.js", "content.js"]
     }
   ]
