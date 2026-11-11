@@ -1,5 +1,6 @@
 import { Gitako } from 'components/Gitako'
 import { IN_PRODUCTION_MODE } from 'env'
+import { handleOAuthCallback } from 'platforms/Gitea/OAuth'
 import React, { useCallback } from 'react'
 import { createRoot } from 'react-dom/client'
 import { insertMountPoint, insertSideBarMountPoint } from 'utils/DOMHelper'
@@ -54,6 +55,12 @@ Promise.resolve()
   .then(() =>
     document.readyState === 'loading' ? waitForNext.documentEvent('DOMContentLoaded') : null,
   )
+  // Finish a Forgejo/Gitea OAuth sign-in started by Gitako. When it succeeds
+  // the page navigates back to where the user started, so skip mounting.
+  .then(() => handleOAuthCallback().catch(() => false))
+  .then(navigatingAway => {
+    if (navigatingAway) return new Promise<never>(() => {})
+  })
   .then(() =>
     Promise.all([injectStyles(browser.runtime.getURL('content.css')), renderReact()]).then(
       ([unmountStyles, unmountReact]) =>

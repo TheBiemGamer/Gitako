@@ -1,6 +1,6 @@
 import { PropsWithChildren } from 'common'
 import React, { useCallback, useContext, useEffect, useState } from 'react'
-import { Config, configHelper } from 'utils/config/helper'
+import { Config, configHelper, configUpdatedEventType } from 'utils/config/helper'
 
 type ContextShape = IO<Config, Partial<Config>>
 export type ConfigsContextShape = ContextShape
@@ -11,6 +11,16 @@ export function ConfigsContextWrapper(props: PropsWithChildren) {
   const [configs, setConfigs] = useState<Config | null>(null)
   useEffect(() => {
     configHelper.get().then(setConfigs)
+  }, [])
+  // Pick up config written outside React (e.g. a refreshed OAuth token), so a
+  // later onChange does not write the stale value back.
+  useEffect(() => {
+    const onExternalUpdate = (event: Event) => {
+      const updated = (event as CustomEvent<Partial<Config>>).detail
+      setConfigs(prev => (prev ? { ...prev, ...updated } : prev))
+    }
+    window.addEventListener(configUpdatedEventType, onExternalUpdate)
+    return () => window.removeEventListener(configUpdatedEventType, onExternalUpdate)
   }, [])
   const onChange = useCallback((updatedConfigs: Partial<Config>) => {
     // Merge against the latest committed config via the functional updater,

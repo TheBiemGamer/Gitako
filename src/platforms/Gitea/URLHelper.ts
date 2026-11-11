@@ -19,9 +19,29 @@ export function parse(): Partial<MetaData> & { path: string[] } {
   }
 }
 
-export function parseSHA() {
+// Gitea/Forgejo code URLs look like
+//   /{user}/{repo}/src/branch/{branch}/{path}
+//   /{user}/{repo}/src/tag/{tag}/{path}
+//   /{user}/{repo}/src/commit/{sha}/{path}
+// and the legacy GitHub-like /{user}/{repo}/(blob|tree)/{ref}/{path}.
+const refKinds = ['branch', 'tag', 'commit']
+
+function getRefAndPath(): { kind?: string; path: string[] } | null {
   const { type, path } = parse()
-  return type === 'blob' || type === 'tree' ? path[0] : undefined
+  if (type === 'src') {
+    const [kind, ...rest] = path
+    if (refKinds.includes(kind)) return { kind, path: rest }
+    return { path }
+  }
+  if (type === 'blob' || type === 'tree') return { path }
+  return null
+}
+
+export function parseSHA() {
+  const parsed = getRefAndPath()
+  if (!parsed) return undefined
+  if (parsed.kind === 'commit' || !parsed.kind) return parsed.path[0]
+  return undefined
 }
 
 function isCommitPath(path: string[]) {
@@ -33,38 +53,34 @@ function isCompleteCommitSHA(sha?: string) {
 }
 
 export function getCurrentPath(branchName = '') {
-  const { path, type } = parse()
-  if (type === 'blob' || type === 'tree') {
-    if (isCommitPath(path)) {
-      // path = commit-SHA/path/to/item
-      path.shift()
-    } else {
-      // path = branch/name/path/to/item or HEAD/path/to/item
-      // HEAD is not a valid branch name. Getting HEAD means being detached.
-      if (path[0] === 'HEAD') path.shift()
-      else {
-        const splitBranchName = branchName.split('/')
-        while (splitBranchName.length) {
-          if (
-            splitBranchName[0] === path[0] ||
-            // Keep consuming as their heads are same
-            (splitBranchName.length === 1 && splitBranchName[0].startsWith(path[0]))
-            // This happens when visiting URLs like /blob/{commitSHA}/path/to/file
-            // and {commitSHA} is shorter than we got from DOM
-          ) {
-            splitBranchName.shift()
-            path.shift()
-          } else {
-            raiseError(new Error(`branch name and path prefix not match`), {
-              branchName,
-              path: parse().path,
-            })
-            return []
-          }
-        }
+  const parsed = getRefAndPath()
+  if (!parsed) return []
+  const { kind, path } = parsed
+  if (kind === 'commit' || isCommitPath(path)) {
+    // path = commit-SHA/path/to/item
+    path.shift()
+  } else if (path[0] === 'HEAD') {
+    // HEAD is not a valid branch name. Getting HEAD means being detached.
+    path.shift()
+  } else {
+    const splitBranchName = branchName.split('/')
+    while (splitBranchName.length) {
+      if (
+        splitBranchName[0] === path[0] ||
+        // Keep consuming as their heads are same
+        (splitBranchName.length === 1 && path[0] && splitBranchName[0].startsWith(path[0]))
+        // This happens when visiting URLs with a commit SHA shorter than we got from DOM
+      ) {
+        splitBranchName.shift()
+        path.shift()
+      } else {
+        raiseError(new Error(`branch name and path prefix not match`), {
+          branchName,
+          path: parse().path,
+        })
+        return []
       }
     }
-    return path.map(decodeURIComponent)
   }
-  return []
+  return path.map(decodeURIComponent)
 }

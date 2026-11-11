@@ -7,6 +7,7 @@
 @import './clippy.scss';
 @import './gitee.scss';
 @import './github.scss';
+@import './forgejo.scss';
 @import './keyframes.scss';
 
 $name: gitako;
@@ -76,6 +77,9 @@ html {
 ##{$name}-root {
   @include enableThemes;
 }
+
+// must come after enableThemes so the Forgejo palette wins
+@include forgejo($name);
 
 .#{$name}-toggle-show-button-wrapper {
   @include hide-for-print();

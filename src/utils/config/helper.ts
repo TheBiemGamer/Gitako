@@ -25,6 +25,10 @@ export type Config = {
   sidebarPlacement: 'left' | 'right'
   neverShowSidebarAutoCollapseHint: boolean
   deferToNativeFileTree: boolean
+  // Forgejo/Gitea OAuth2 (PKCE) — per instance, see platforms/Gitea/OAuth.ts
+  oauthClientId: string
+  oauthRefreshToken: string
+  oauthTokenExpiresAt: number
   __showInspector?: boolean
 }
 
@@ -52,6 +56,9 @@ enum configKeys {
   sidebarPlacement = 'sidebarPlacement',
   neverShowSidebarAutoCollapseHint = 'neverShowSidebarAutoCollapseHint',
   deferToNativeFileTree = 'deferToNativeFileTree',
+  oauthClientId = 'oauthClientId',
+  oauthRefreshToken = 'oauthRefreshToken',
+  oauthTokenExpiresAt = 'oauthTokenExpiresAt',
   __showInspector = '__showInspector',
 }
 
@@ -71,7 +78,8 @@ export const getDefaultConfigs: () => Config = () => ({
   toggleButtonVerticalDistance: 64, // align with GitHub's navbar items
   recursiveToggleFolder: 'shift',
   searchMode: 'fuzzy',
-  sidebarToggleMode: 'float',
+  // Gitea/Forgejo have no native file tree, so keep the sidebar docked and open
+  sidebarToggleMode: platformName === 'Gitea' ? 'persistent' : 'float',
   commentToggle: true,
   codeFolding: !isInGitHub, // disable on github.com; native gutter folding covers it, preserved for GHE
   compactFileTree: false,
@@ -81,6 +89,9 @@ export const getDefaultConfigs: () => Config = () => ({
   sidebarPlacement: 'left',
   neverShowSidebarAutoCollapseHint: false,
   deferToNativeFileTree: true,
+  oauthClientId: '',
+  oauthRefreshToken: '',
+  oauthTokenExpiresAt: 0,
 })
 
 const configKeyArray = Object.values(configKeys)
@@ -144,4 +155,15 @@ async function set(config: Config) {
   if (!loadedConfigFromURL) await storageHelper.set({ [platformStorageKey]: config })
 }
 
-export const configHelper = { get, set }
+// Fired on window when config is written outside ConfigsContext.
+export const configUpdatedEventType = 'gitako:config-updated'
+
+/** Merge and persist a partial config from outside React, and notify the context. */
+async function update(partial: Partial<Config>) {
+  const config = { ...(await get()), ...partial }
+  await set(config)
+  window.dispatchEvent(new CustomEvent(configUpdatedEventType, { detail: partial }))
+  return config
+}
+
+export const configHelper = { get, set, update }

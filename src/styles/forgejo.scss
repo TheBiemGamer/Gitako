@@ -1,0 +1,72 @@
+// Forgejo / Gitea theme bridge.
+//
+// Gitako's styles are written against GitHub Primer CSS variables, which
+// Forgejo and Gitea do not define. Without this bridge the sidebar always
+// renders with Primer's light palette, regardless of the active Forgejo theme.
+// Both Forgejo and Gitea expose their palette as `--color-*` custom properties
+// on `:root` (switched by `data-theme` / theme stylesheets), so the Primer
+// variables are mapped onto those. Each mapping keeps the Primer value as
+// fallback for themes that don't define a given variable.
+@mixin forgejo($name) {
+  // Unmapped Primer variables (e.g. primary button colors) still need the
+  // right light/dark base. `data-gitako-color-mode` is set by containers/Theme.
+  // Same specificity as the mapping below, which comes later and wins.
+  html[data-gitako-color-mode='dark'] {
+    ##{$name}-root,
+    .#{$name}-toggle-show-button-wrapper {
+      @include primer-colors-dark;
+    }
+  }
+
+  html[data-gitako-platform='Gitea'] {
+    ##{$name}-root,
+    .#{$name}-toggle-show-button-wrapper {
+      --color-canvas-default: var(--color-body, #fff);
+      --color-canvas-default-transparent: transparent;
+      --color-canvas-subtle: var(--color-box-header, #f6f8fa);
+      --color-canvas-inset: var(--color-box-body, #f6f8fa);
+      --color-canvas-overlay: var(--color-menu, var(--color-body, #fff));
+      --color-bg-default: var(--color-body, #fff);
+      --color-bg-default-transparent: transparent;
+      --color-bg-subtle: var(--color-box-header, #f6f8fa);
+      --color-bg-inset: var(--color-box-body, #f6f8fa);
+      --color-bg-overlay: var(--color-menu, var(--color-body, #fff));
+
+      --color-fg-default: var(--color-text, #24292f);
+      --color-fg-muted: var(--color-text-light, #57606a);
+      --color-fg-subtle: var(--color-text-light-2, #6e7781);
+      --color-fg-on-emphasis: var(--color-primary-contrast, #fff);
+
+      --color-border-default: var(--color-secondary, #d0d7de);
+      --color-border-muted: var(--color-light-border, #d8dee4);
+
+      --color-accent-fg: var(--color-primary, #0969da);
+      --color-accent-emphasis: var(--color-primary, #0969da);
+      --color-success-fg: var(--color-green, #1a7f37);
+      --color-success-emphasis: var(--color-green, #2da44e);
+      --color-danger-fg: var(--color-red, #cf222e);
+      --color-danger-emphasis: var(--color-red, #cf222e);
+      --color-attention-fg: var(--color-yellow, #9a6700);
+
+      --color-neutral-muted: var(--color-hover, rgba(175, 184, 193, 0.2));
+      --color-neutral-emphasis: var(--color-text-light, #6e7781);
+
+      --color-btn-bg: var(--color-button, var(--color-box-header, #f6f8fa));
+      --color-btn-border: var(--color-light-border, rgba(27, 31, 36, 0.15));
+      --color-btn-hover-bg: var(--color-hover, #f3f4f6);
+      --color-btn-hover-border: var(--color-secondary, rgba(27, 31, 36, 0.15));
+      --color-btn-active-bg: var(--color-active, hsla(220, 14%, 93%, 1));
+      --color-btn-active-border: var(--color-secondary, rgba(27, 31, 36, 0.15));
+      --color-btn-focus-bg: var(--color-hover, #f6f8fa);
+
+      --color-primer-canvas-backdrop: rgba(0, 0, 0, 0.5);
+
+      color: var(--color-text, #24292f);
+    }
+
+    // The sidebar inherits Forgejo's (fomantic) font stack instead of Primer's.
+    ##{$name}-root .#{$name}-side-bar {
+      font-family: var(--fonts-regular, inherit);
+    }
+  }
+}

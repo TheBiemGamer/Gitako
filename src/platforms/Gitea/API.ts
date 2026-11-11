@@ -2,6 +2,7 @@ import { raiseError } from 'analytics'
 import { errors } from 'platforms'
 import { is } from 'utils/is'
 import { gitakoServiceHost } from 'utils/networkService'
+import { getFreshAccessToken } from './OAuth'
 
 function isEmptyProject(content: JSONValue) {
   return is.JSON.object(content) && content?.['message'] === 'Git Repository is empty.'
@@ -22,13 +23,16 @@ async function request(
   const headers: HeadersInit & {
     Authorization?: string
   } = {}
-  if (accessToken) {
-    headers.Authorization = `token ${accessToken}`
+  const token = await getFreshAccessToken(accessToken)
+  if (token) {
+    headers.Authorization = `token ${token}`
   }
 
   let res: Response
   try {
-    res = await fetch(url, { headers })
+    // `same-origin` sends the Forgejo/Gitea session cookie, which their API
+    // accepts. Signed-in users can browse private repos without any token.
+    res = await fetch(url, { headers, credentials: 'same-origin' })
   } catch (err) {
     throw new Error(errors.CONNECTION_BLOCKED)
   }

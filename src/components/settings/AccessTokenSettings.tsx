@@ -4,6 +4,11 @@ import { useConfigs } from 'containers/ConfigsContext'
 import { SideBarStateContext } from 'containers/SideBarState'
 import { platform } from 'platforms'
 import { Gitea } from 'platforms/Gitea'
+import {
+  getApplicationsSettingsURL,
+  getRedirectURI,
+  startOAuthFlow,
+} from 'platforms/Gitea/OAuth'
 import { Gitee } from 'platforms/Gitee'
 import React, { useCallback, useEffect, useState } from 'react'
 import { IIFC } from 'react-iifc'
@@ -95,7 +100,13 @@ export function AccessTokenSettings() {
                             <Button
                               variant="danger"
                               disabled={!allowClear}
-                              onClick={() => configContext.onChange({ accessToken: '' })}
+                              onClick={() =>
+                                configContext.onChange({
+                                  accessToken: '',
+                                  oauthRefreshToken: '',
+                                  oauthTokenExpiresAt: 0,
+                                })
+                              }
                             >
                               {countDown ? `Confirm (${countDown}s)` : `Confirm`}
                             </Button>
@@ -118,8 +129,7 @@ export function AccessTokenSettings() {
       ) : (
         <div>
           {platform === Gitea ? (
-            // TODO
-            <Text>Note: OAuth for Gitea is unavailable</Text>
+            <ForgejoOAuth />
           ) : platform === Gitee ? (
             // disabled for Gitee as it does not support dynamic redirect_uri
             <Text>Note: OAuth for Gitee is unavailable</Text>
@@ -164,6 +174,68 @@ export function AccessTokenSettings() {
       )}
       {accessTokenHint && <span className={'hint'}>{accessTokenHint}</span>}
     </SettingsSection>
+  )
+}
+
+/**
+ * Forgejo/Gitea: sign in through a public OAuth2 app registered on this
+ * instance (PKCE, no client secret, no Gitako server involved).
+ */
+function ForgejoOAuth() {
+  const configContext = useConfigs()
+  const { oauthClientId } = configContext.value
+  const [clientId, setClientId] = useState(oauthClientId)
+  const [showSetup, setShowSetup] = useState(!oauthClientId)
+
+  const signIn = () => {
+    const id = clientId.trim()
+    if (!id) return
+    if (id !== oauthClientId) configContext.onChange({ oauthClientId: id })
+    startOAuthFlow(id)
+  }
+
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 2 }}>
+      <Text as="p" sx={{ m: 0 }}>
+        Signed in to this site? Private repositories already work without a token.
+      </Text>
+      {showSetup ? (
+        <>
+          <Text as="p" sx={{ m: 0 }}>
+            To sign in with OAuth, create an application under{' '}
+            <a href={getApplicationsSettingsURL()} target="_blank" rel="noopener noreferrer">
+              Settings → Applications
+            </a>{' '}
+            with redirect URI <code>{getRedirectURI()}</code> and <em>Confidential client</em>{' '}
+            unchecked, then paste its Client ID here.
+          </Text>
+          <div className={'access-token-input-control'}>
+            <TextInput
+              sx={{ marginRight: 1 }}
+              className={'oauth-client-id-input'}
+              value={clientId}
+              placeholder="OAuth2 Client ID"
+              onChange={({ currentTarget: { value } }) => setClientId(value)}
+              onKeyPress={({ key }) => {
+                if (key === 'Enter') signIn()
+              }}
+            />
+            <Button onClick={signIn} disabled={!clientId.trim()}>
+              Sign in
+            </Button>
+          </div>
+        </>
+      ) : (
+        <Box display="inline-flex" alignItems="center" sx={{ gap: 2 }}>
+          <Button variant="primary" onClick={signIn}>
+            Sign in with OAuth
+          </Button>
+          <a className={'link-button'} onClick={() => setShowSetup(true)}>
+            Change Client ID
+          </a>
+        </Box>
+      )}
+    </Box>
   )
 }
 
