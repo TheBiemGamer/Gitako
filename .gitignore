@@ -10,3 +10,6 @@ firefox-profile
 /test-results
 /playwright-report
 /e2e/.profile
+
+# extension signing keys (scripts/pack-crx.sh)
+*.pem
