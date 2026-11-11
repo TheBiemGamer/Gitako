@@ -4,11 +4,7 @@ import { useConfigs } from 'containers/ConfigsContext'
 import { SideBarStateContext } from 'containers/SideBarState'
 import { platform } from 'platforms'
 import { Gitea } from 'platforms/Gitea'
-import {
-  getApplicationsSettingsURL,
-  getRedirectURI,
-  startOAuthFlow,
-} from 'platforms/Gitea/OAuth'
+import { getApplicationsSettingsURL, getRedirectURI, startOAuthFlow } from 'platforms/Gitea/OAuth'
 import { Gitee } from 'platforms/Gitee'
 import React, { useCallback, useEffect, useState } from 'react'
 import { IIFC } from 'react-iifc'
@@ -190,8 +186,7 @@ function ForgejoOAuth() {
   const signIn = () => {
     const id = clientId.trim()
     if (!id) return
-    if (id !== oauthClientId) configContext.onChange({ oauthClientId: id })
-    startOAuthFlow(id)
+    startOAuthFlow(id) // saves the client ID before redirecting
   }
 
   return (

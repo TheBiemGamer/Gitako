@@ -73,6 +73,8 @@ async function saveTokens(data: TokenResponse) {
 }
 
 export async function startOAuthFlow(clientId: string) {
+  // Persist before navigating away: the callback page reads it back.
+  await configHelper.update({ oauthClientId: clientId })
   const state = randomString(16)
   const verifier = randomString(48)
   sessionStorage.setItem(STATE_KEY, state)
@@ -160,6 +162,19 @@ export async function getFreshAccessToken(accessToken?: string): Promise<string 
         return data.access_token
       })
       .catch(async () => {
+        // Refresh tokens rotate. If another tab refreshed first, our token is
+        // already revoked but storage holds a fresh pair: use that instead of
+        // signing the user out.
+        const latest = await configHelper.get()
+        if (latest.oauthRefreshToken && latest.oauthRefreshToken !== oauthRefreshToken) {
+          const { accessToken, oauthRefreshToken: refresh, oauthTokenExpiresAt: expiresAt } = latest
+          Object.assign(configRef, {
+            accessToken,
+            oauthRefreshToken: refresh,
+            oauthTokenExpiresAt: expiresAt,
+          })
+          return accessToken
+        }
         // refresh token revoked or expired: fall back to anonymous / session access
         await configHelper.update({
           accessToken: '',
