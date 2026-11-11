@@ -29,17 +29,5 @@
   },
   "action": {
     "default_icon": "icons/Gitako.png"
-  },
-  "content_scripts": [
-    {
-      "matches": ["https://github.com/*", "https://git.biem.cloud/*"],
-      "js": ["early.js"],
-      "css": ["content.css"],
-      "run_at": "document_start"
-    },
-    {
-      "matches": ["https://github.com/*", "https://git.biem.cloud/*"],
-      "js": ["firefox-shim.js", "browser-polyfill.js", "content.js"]
-    }
-  ]
+  }
 }
