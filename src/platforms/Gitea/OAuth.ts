@@ -97,8 +97,13 @@ export async function startOAuthFlow(clientId: string) {
  * Returns true when the page is navigating away (to the original page).
  */
 export async function handleOAuthCallback(): Promise<boolean> {
+  // Only the redirect URI with a code or error is the callback. Other pages in
+  // the flow also carry `state` (the authorize page; a login page redirecting
+  // back to it) and must be left untouched.
+  if (window.location.pathname !== new URL(getRedirectURI()).pathname) return false
   const search = new URLSearchParams(window.location.search)
   const code = search.get('code')
+  if (!code && !search.get('error')) return false
   const state = search.get('state')
   const expectedState = sessionStorage.getItem(STATE_KEY)
   if (!state || !expectedState) return false
