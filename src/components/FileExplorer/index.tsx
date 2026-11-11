@@ -7,7 +7,7 @@ import { useConfigs } from 'containers/ConfigsContext'
 import { useInspector } from 'containers/Inspector'
 import { PortalContext } from 'containers/PortalContext'
 import { RepoContext } from 'containers/RepoContext'
-import { platform } from 'platforms'
+import { platform, platformName } from 'platforms'
 import React, {
   useCallback,
   useContext,
@@ -19,6 +19,7 @@ import React, {
 } from 'react'
 import { usePrevious, useUpdateEffect } from 'react-use'
 import { cx } from 'utils/cx'
+import { getSnapshotScrollTop, removeEarlySnapshot } from 'utils/earlySnapshot'
 import { run } from 'utils/general'
 import { useElementSize } from 'utils/hooks/useElementSize'
 import { useAfterRedirect } from 'utils/hooks/useFastRedirect'
@@ -113,6 +114,10 @@ function LoadedFileExplorer({
     visibleNodesGenerator.setCompression(compressSingletonFolder)
   }, [compressSingletonFolder])
 
+  // Gitea/Forgejo reload the page per file: continue at the previous scroll offset
+  const [restoredScrollTop] = useState(() =>
+    platformName === 'Gitea' ? getSnapshotScrollTop() : null,
+  )
   const {
     ref: filesRef,
     size: [, height],
@@ -129,6 +134,7 @@ function LoadedFileExplorer({
     rowHeight: compactFileTree ? 24 : 37,
     viewportHeight: height,
     overScan: 10,
+    initialScrollTop: restoredScrollTop ?? 0,
   })
 
   const portalName = useMemo(() => `${Math.random()}`, [])
@@ -147,7 +153,8 @@ function LoadedFileExplorer({
   //   - "lazy"
   // - navigate with keyboard
   //   - "lazy"
-  const [alignMode, setAlignMode] = useState<AlignMode>('top')
+  // when continuing at a restored offset, only scroll if the current file is out of view
+  const [alignMode, setAlignMode] = useState<AlignMode>(restoredScrollTop ? 'lazy' : 'top')
 
   const index = useMemo(
     () => (focusedNode?.path ? nodes.findIndex(node => node.path === focusedNode.path) : -1),
@@ -157,6 +164,18 @@ function LoadedFileExplorer({
   useLayoutEffect(() => {
     if (index !== -1) scrollToItem(index, alignMode)
   }, [index, scrollToItem, alignMode])
+
+  // Uncover the real tree once it shows the current file (or there is none),
+  // a frame after it has painted underneath the early snapshot.
+  const [expectsCurrentFile] = useState(
+    () => (platform.getCurrentPath(metaData.branchName)?.length || 0) > 0,
+  )
+  const treeReady = visibleNodes.nodes.length > 0 && (Boolean(focusedNode) || !expectsCurrentFile)
+  useEffect(() => {
+    if (!treeReady) return
+    let frame = requestAnimationFrame(() => (frame = requestAnimationFrame(removeEarlySnapshot)))
+    return () => cancelAnimationFrame(frame)
+  }, [treeReady])
   const prevSearchKey = usePrevious(searchKey)
   useEffect(() => {
     // when start searching or stop searching

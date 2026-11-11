@@ -25,7 +25,8 @@ $minimal-z-index: max(
     $github-header-z-index,
     $github-pull-request-float-header-z-index,
     $github-notifications-center-header-z-index
-  ) + 1;
+  ) +
+  1;
 
 @mixin hide-for-print {
   @media print {
@@ -74,7 +75,8 @@ html {
   display: none;
 }
 
-##{$name}-root {
+##{$name}-root,
+##{$name}-early-snapshot {
   @include enableThemes;
 }
 
@@ -554,8 +556,17 @@ html {
                 display: inline-block;
                 white-space: nowrap;
                 // Use some commonly available monospace font, the leading ones are copied from GitHub
-                font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono,
-                  monospace, 'Cascadia Code', 'Courier New', Courier;
+                font-family:
+                  ui-monospace,
+                  SFMono-Regular,
+                  SF Mono,
+                  Menlo,
+                  Consolas,
+                  Liberation Mono,
+                  monospace,
+                  'Cascadia Code',
+                  'Courier New',
+                  Courier;
                 .additions {
                   color: var(--color-success-emphasis);
                 }
@@ -618,7 +629,9 @@ html {
         justify-content: space-between;
         align-items: flex-start;
         padding: 10px;
-        box-shadow: 0 1px 8px 0 rgba(0, 0, 0, 0.2), 0 3px 4px 0 rgba(0, 0, 0, 0.14),
+        box-shadow:
+          0 1px 8px 0 rgba(0, 0, 0, 0.2),
+          0 3px 4px 0 rgba(0, 0, 0, 0.14),
           0 3px 3px -2px rgba(0, 0, 0, 0.12);
         z-index: 2;
       }

@@ -13,6 +13,7 @@
   // Same specificity as the mapping below, which comes later and wins.
   html[data-gitako-color-mode='dark'] {
     ##{$name}-root,
+    ##{$name}-early-snapshot,
     .#{$name}-toggle-show-button-wrapper {
       @include primer-colors-dark;
     }
@@ -20,6 +21,7 @@
 
   html[data-gitako-platform='Gitea'] {
     ##{$name}-root,
+    ##{$name}-early-snapshot,
     .#{$name}-toggle-show-button-wrapper {
       --color-canvas-default: var(--color-body, #fff);
       --color-canvas-default-transparent: transparent;
@@ -65,8 +67,22 @@
     }
 
     // The sidebar inherits Forgejo's (fomantic) font stack instead of Primer's.
-    ##{$name}-root .#{$name}-side-bar {
+    ##{$name}-root .#{$name}-side-bar,
+    ##{$name}-early-snapshot .#{$name}-side-bar {
       font-family: var(--fonts-regular, inherit);
+    }
+
+    // Snapshot of the sidebar painted by early.ts until Gitako's own tree is
+    // rendered: keep it above the mounting sidebar.
+    ##{$name}-early-snapshot .#{$name}-side-bar-body-wrapper {
+      z-index: calc(#{$minimal-z-index} + 1);
+      view-transition-name: #{$name}-sidebar;
+    }
+    // Only one element may carry the transition name at a time.
+    &:not([data-#{$name}-early-snapshot])
+      ##{$name}-sidebar-mount-point
+      .#{$name}-side-bar-body-wrapper:not(.collapsed) {
+      view-transition-name: #{$name}-sidebar;
     }
   }
 }

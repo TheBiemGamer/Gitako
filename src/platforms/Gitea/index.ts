@@ -1,5 +1,6 @@
 import { Base64 } from 'js-base64'
 import { Platform } from 'platforms/platform'
+import { useEarlySnapshot } from 'utils/earlySnapshot'
 import { resolveGitModules } from 'utils/gitSubmodule'
 import { useProgressBar } from 'utils/hooks/useProgressBar'
 import { sortFoldersToFront } from 'utils/treeParser'
@@ -172,6 +173,7 @@ export const Gitea: Platform = {
   },
   usePlatformHooks() {
     useProgressBar()
+    useEarlySnapshot()
   },
   // Always do a full page load. Forgejo mounts widgets such as the branch
   // dropdown (a Vue app fed from window.config.pageData) once at page init, so

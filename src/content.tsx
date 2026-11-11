@@ -4,6 +4,7 @@ import { handleOAuthCallback } from 'platforms/Gitea/OAuth'
 import React, { useCallback } from 'react'
 import { createRoot } from 'react-dom/client'
 import { insertMountPoint, insertSideBarMountPoint } from 'utils/DOMHelper'
+import { removeEarlySnapshot } from 'utils/earlySnapshot'
 import { useAfterRedirect } from 'utils/hooks/useFastRedirect'
 import { waitForNext } from 'utils/waitForNextEvent'
 import './content.scss'
@@ -69,6 +70,9 @@ Promise.resolve()
     ),
   )
   .then(unmount => {
+    // FileExplorer removes the early snapshot once its tree is rendered; this
+    // covers pages where no tree renders (collapsed sidebar, errors)
+    setTimeout(removeEarlySnapshot, 4000)
     document.dispatchEvent(new CustomEvent(GitakoMountedEventType))
     if (IN_PRODUCTION_MODE) {
       waitForNext.documentEvent(GitakoExclusiveEventType).then(unmount)

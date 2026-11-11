@@ -129,6 +129,7 @@ function createConfig({ envTarget }: { envTarget: Target }) {
   const webpackConfig: Configuration = {
     entry: {
       content: './src/content.tsx',
+      early: './src/early.ts',
       background: './src/background.ts',
     },
     devtool: IN_PRODUCTION_MODE ? 'source-map' : 'inline-source-map',

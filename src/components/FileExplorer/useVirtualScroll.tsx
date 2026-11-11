@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useCallbackRef } from './useLatestValueRef'
 
 function memoize<Args extends AnyArray, R>(
@@ -21,16 +21,26 @@ export function useVirtualScroll<E extends HTMLElement>({
   viewportHeight,
   rowHeight,
   overScan = 0,
+  initialScrollTop = 0,
 }: {
   totalAmount: number
   overScan?: number
   viewportHeight: number
   rowHeight: number
+  // applied once rows exist (e.g. to continue where the previous page left off)
+  initialScrollTop?: number
 }) {
   const totalHeight = totalAmount * rowHeight
 
   const ref = useRef<E | null>(null) // TODO: compare DOM native event listener
-  const [scrollTop, setScrollTop] = useState(0)
+  const [scrollTop, setScrollTop] = useState(initialScrollTop)
+  const pendingInitialScrollTop = useRef(initialScrollTop)
+  useLayoutEffect(() => {
+    if (pendingInitialScrollTop.current && totalAmount > 0 && ref.current) {
+      ref.current.scrollTop = pendingInitialScrollTop.current
+      pendingInitialScrollTop.current = 0
+    }
+  }, [totalAmount])
 
   const onScroll = useCallback((e: React.UIEvent<E, UIEvent>) => {
     setScrollTop(e.currentTarget.scrollTop)
